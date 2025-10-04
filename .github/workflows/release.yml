@@ -1,0 +1,154 @@
+name: Release on Main (.NET 8)
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+        with:
+            fetch-depth: 0
+
+      - name: Fetch last release version
+        id: last_release
+        run: |
+          git fetch --tags
+          LAST_RELEASE=$(git tag --list 'v*.0.0' --sort=-creatordate | head -n 1)
+          echo "Última release: $LAST_RELEASE"
+          echo "last_release=$LAST_RELEASE" >> $GITHUB_OUTPUT
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.x"
+
+      - name: Validate branch name
+        id: validate
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          if [[ "$BRANCH" =~ ^release/([0-9]+)\.0\.0$ ]]; then
+            VERSION="${BASH_REMATCH[1]}.0.0"
+            TYPE="release"
+            MAJOR="${BASH_REMATCH[1]}"
+          elif [[ "$BRANCH" =~ ^hotfix/([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            TYPE="hotfix"
+            MAJOR="${BASH_REMATCH[1]}"
+            MINOR="${BASH_REMATCH[2]}"
+            PATCH="${BASH_REMATCH[3]}"
+            VERSION="$MAJOR.$MINOR.$PATCH"
+          else
+            echo "❌ Nome de branch inválido: $BRANCH"
+            exit 1
+          fi
+
+          echo "version=v$VERSION" >> $GITHUB_OUTPUT
+          echo "type=$TYPE" >> $GITHUB_OUTPUT
+          echo "major=$MAJOR" >> $GITHUB_OUTPUT
+          echo "minor=$MINOR" >> $GITHUB_OUTPUT
+
+      - name: Validate sequential release
+        if: steps.validate.outputs.type == 'release'
+        run: |
+          LAST_MAJOR=$(echo "${{ steps.last_release.outputs.last_release }}" | sed 's/v//' | cut -d. -f1)
+          CURRENT_MAJOR="${{ steps.validate.outputs.major }}"
+          EXPECTED=$((LAST_MAJOR + 1))
+
+          echo "Último major: $LAST_MAJOR"
+          echo "Esperado: $EXPECTED"
+          echo "Atual: $CURRENT_MAJOR"
+
+          if [ "$CURRENT_MAJOR" -ne "$EXPECTED" ]; then
+            echo "❌ Próxima release deve ser v${EXPECTED}.0.0"
+            exit 1
+          fi
+
+      - name: Validate hotfix based on the last patch
+        if: steps.validate.outputs.type == 'hotfix'
+        run: |
+          git fetch --tags
+
+          CURRENT_MAJOR="${{ steps.validate.outputs.major }}"
+          CURRENT_MINOR="${{ steps.validate.outputs.minor }}"
+          CURRENT_PATCH=$(echo "${{ steps.validate.outputs.version }}" | cut -d. -f3)
+
+          MATCH_PREFIX="v$CURRENT_MAJOR.$CURRENT_MINOR."
+          echo "Procurando tags com prefixo: $MATCH_PREFIX"
+
+          LAST_PATCH=$(git tag --list "${MATCH_PREFIX}*" | sed "s/${MATCH_PREFIX}//" | sort -n | tail -n 1)
+          LAST_PATCH=${LAST_PATCH:-0}
+
+          EXPECTED=$((LAST_PATCH + 1))
+
+          echo "Último patch: $LAST_PATCH"
+          echo "Esperado: $EXPECTED"
+          echo "Atual: $CURRENT_PATCH"
+
+          if [ "$CURRENT_PATCH" -ne "$EXPECTED" ]; then
+            echo "❌ Hotfix inválido. O próximo patch permitido é Z = $EXPECTED (ex: hotfix/$CURRENT_MAJOR.$CURRENT_MINOR.$EXPECTED)"
+            exit 1
+          fi
+
+      - name: Extract Version to Phase Stage
+        id: phase
+        run: |
+          VERSION="${{ steps.validate.outputs.version }}" 
+          MAJOR=$(echo "$VERSION" | cut -d. -f1 | sed 's/v//') 
+          echo "phase=$MAJOR" >> $GITHUB_OUTPUT
+
+      - name: Create temporary .sln from .slnx
+        run: |
+          dotnet new sln -n Fiap
+          find . -name "*.csproj" -exec dotnet sln Fiap.sln add {} \;
+
+      - name: Restore dependencies
+        run: dotnet restore Fiap.sln
+      - name: Build application
+        run: dotnet build Fiap.sln --configuration Release --no-restore
+
+      - name: Publish application
+        run: dotnet publish Fiap.sln --configuration Release --output publish --no-restore
+
+      - name: Create Build ZIP
+        run: zip -r Fiap.Api-${{ steps.validate.outputs.version }}.zip publish/
+
+      - name: Create release on GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.validate.outputs.version }}
+          name: >-
+            ${{ steps.validate.outputs.type == 'release' && format('Fase {0} - Release {1}', steps.phase.outputs.phase, steps.validate.outputs.version) || format('Fase {0} - Hotfix {1}', steps.phase.outputs.phase, steps.validate.outputs.version) }}
+          body: >-
+            ${{ steps.validate.outputs.type == 'release' && format(
+              '🎯 Fase {0} do projeto FIAP finalizada!
+              ✅ Todas as funcionalidades desta fase foram integradas.
+              🔖 Versão: {1}
+              🔀 Branch: {2}',
+              
+              steps.phase.outputs.phase,
+              steps.validate.outputs.version,
+              github.head_ref
+            ) || format(
+              '🚑 Hotfix da fase {0} aplicado com sucesso!
+              🔖 Versão corrigida: {1}
+              🔀 Branch: {2}',
+              steps.phase.outputs.phase,
+              steps.validate.outputs.version,
+              github.head_ref
+            ) }}
+          files: Fiap.Api-${{ steps.validate.outputs.version }}.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

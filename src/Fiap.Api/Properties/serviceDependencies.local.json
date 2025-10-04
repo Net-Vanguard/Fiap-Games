@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "rabbitmq1": {
+      "containerPorts": "5672:5672,15672:15672",
+      "secretStore": "LocalSecretsFile",
+      "containerName": "rabbitmq",
+      "containerImage": "rabbitmq:3-management-alpine",
+      "type": "rabbitmq.container",
+      "connectionId": "ServiceBus"
+    },
+    "postgresql1": {
+      "containerPorts": "5432:5432",
+      "secretStore": "LocalSecretsFile",
+      "containerName": "postgresql",
+      "containerImage": "postgres",
+      "resourceId": null,
+      "type": "postgresql.container",
+      "connectionId": "ConnectionStrings:DefaultConnection"
+    }
+  }
+}

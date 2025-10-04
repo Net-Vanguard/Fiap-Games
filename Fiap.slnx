@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/1. Api Layer/">
+    <Project Path="src/Fiap.Api/Fiap.Api.csproj" />
+  </Folder>
+  <Folder Name="/2. Application layer/">
+    <Project Path="src/Fiap.Application/Fiap.Application.csproj" />
+  </Folder>
+  <Folder Name="/3. Domain Layer/">
+    <Project Path="src/Fiap.Domain/Fiap.Domain.csproj" />
+  </Folder>
+  <Folder Name="/4. Infra Layer/">
+    <Project Path="src/Fiap.Infra.Bus/Fiap.Infra.Bus.csproj" />
+    <Project Path="src/Fiap.Infra.CrossCutting.Common/Fiap.Infra.CrossCutting.Common.csproj" Id="8d2ccf97-9601-4a87-a025-c20dda498be4" />
+    <Project Path="src/Fiap.Infra.CrossCutting.IoC/Fiap.Infra.CrossCutting.IoC.csproj" />
+    <Project Path="src/Fiap.Infra.Data/Fiap.Infra.Data.csproj" />
+    <Project Path="src/Fiap.Infra.HostedService/Fiap.Infra.HostedService.csproj" />
+  </Folder>
+  <Folder Name="/5. Tests Layer/">
+    <Project Path="test/Fiap.Unit.Tests/Fiap.Unit.Tests.csproj" />
+  </Folder>
+</Solution>

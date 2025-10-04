@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "rabbitmq1": {
+      "type": "rabbitmq",
+      "connectionId": "ServiceBus"
+    },
+    "postgresql1": {
+      "type": "postgresql",
+      "connectionId": "ConnectionStrings:DefaultConnection"
+    }
+  }
+}

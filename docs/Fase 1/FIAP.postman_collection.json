@@ -1,0 +1,526 @@
+{
+	"info": {
+		"_postman_id": "88bbcd79-29a1-4c59-82f9-26e011de778a",
+		"name": "FIAP",
+		"description": "Essa collection representa todos os endpoints que serão disponibilizados durante as fases do Tech Challenge, aqui teremos tudo documentado.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "7462334"
+	},
+	"item": [
+		{
+			"name": "Promotion",
+			"item": [
+				{
+					"name": "Update promotion",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"discount\": 25,\r\n  \"expirationDate\": \"2025-04-25T15:09:36.6262466Z\",\r\n  \"gameId\": [\r\n    1,\r\n    2,\r\n    3\r\n  ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}api/v1/promotions/1",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"promotions",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Promotion",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {}
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/xml",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"discount\": 25,\r\n  \"expirationDate\": \"2025-04-25T15:12:39.9356532Z\",\r\n  \"gameId\": [\r\n    1,\r\n    2,\r\n    3\r\n  ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}api/v1/promotions",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"promotions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Promotion By Id",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}api/v1/promotions/1",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"promotions",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Nesta seção você encontrará endpoints voltados ao gerenciamento de promoções de jogos:\n\n- **POST** `/promotions` – Criar nova promoção\n    \n- **PATCH** `/promotions/{id}` – Alterar uma promoção existente"
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Create User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"John Doe\",\r\n  \"email\": \"john.doe@hotmail.com\",\r\n  \"password\": \"Password123!\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}api/v1/users/create",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Users",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}api/v1/users",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"Maria Cariedsadsadsadsadijnsadiusandiasndijaundiusandoisaudiouasndoiasudoiusandoiasudnoasiundoisaundoiuasdiousanda\",\r\n  \"email\": \"maria.cariCariedsadsadsadsadijnsadiusandiasndijaundiusandoisaudiouasndoiasudoiusandoiasudnoasiundoisaundoiuasdiousandae@hotmail.com\",\r\n  \"password\": \"Password456!\",\r\n  \"type\": 1,\r\n  \"active\": false\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}api/v1/users/7",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"7"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}api/v1/users/7",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"7"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User By Id",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}api/v1/users/2",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User games",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}api/v1/users/users-games",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"users-games"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create User (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://localhost:5001/api/v1/users/create-admin",
+							"protocol": "https",
+							"host": [
+								"localhost"
+							],
+							"port": "5001",
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"create-admin"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "### Coleção: `Controle de Usuário - API`\n\n#### 📁 Admin\n\n- **POST** `/admin/login` – 🔐 Login (Admin)\n    \n- **POST** `/admin/users` – ➕ Criar usuário\n    \n- **GET** `/admin/users/{id}` – 👤 Listar usuário por ID\n    \n- **GET** `/admin/users` – 📋 Listar todos usuários\n    \n- **DELETE** `/admin/users/{id}` – 🗑️ Deletar usuário\n    \n- **PATCH** `/admin/users/{id}` – ✏️ Atualizar usuário\n    \n- **PATCH** `/admin/users/{id}/change-password` – 🔄 Trocar senha de usuário\n    \n\n#### 📁 Usuário\n\n- **POST** `/auth/login` – 🔐 Login (Usuário)\n    \n- **POST** `/users/register` – ➕ Criar conta\n    \n- **PATCH** `/users/change-password` – 🔒 Trocar a própria senha"
+		},
+		{
+			"name": "Game",
+			"item": [
+				{
+					"name": "Create Game",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"Elden Ring\",\r\n  \"genre\": \"Adventure\",\r\n  \"price\": 299.9,\r\n  \"promotionId\": null\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}api/v1/games",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"games"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All Games",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}api/v1/games",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"games"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Game By Id",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}api/v1/games/1",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"games",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);\r",
+									"pm.test(\"/api/v1/auth/login - Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.environment.set(\"token\", jsonData.data.token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"username\": \"admin@domain.com\",\r\n  \"password\": \"F1ap@Senha\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}api/v1/auth/login",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "HealthCheck",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}health",
+					"host": [
+						"{{baseUrl}}health"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
