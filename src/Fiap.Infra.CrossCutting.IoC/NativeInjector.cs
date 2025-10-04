@@ -58,7 +58,7 @@ public static class NativeInjector
         var connectionString = configuration.GetConnectionString("FCGConnection");
         
         services.AddDbContext<Context>(options =>
-            options.UseNpgsql(connectionString));
+            options.UseSqlServer(connectionString));
 
 		services.AddSingleton(sp =>
 		{

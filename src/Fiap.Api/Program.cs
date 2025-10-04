@@ -37,7 +37,7 @@ builder.Services.AddCustomMvc();
 
 builder.Services
     .AddHealthChecks()
-    .AddNpgSql(databaseConnection.FCGConnection)
+    .AddSqlServer(databaseConnection.FCGConnection, "games-sqlserver")
     .AddApplicationStatus()
     .AddRedis(databaseConnection.RedisConnectionString);
 

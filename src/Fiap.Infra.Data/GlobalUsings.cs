@@ -8,7 +8,6 @@ global using Fiap.Domain.Common.ValueObjects;
 global using Fiap.Domain.OutboxAggregate;
 global using Fiap.Domain.PromotionAggregate;
 global using Microsoft.EntityFrameworkCore.Migrations;
-global using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 global using Microsoft.EntityFrameworkCore.Infrastructure;
 
 global using Fiap.Domain.SeedWork;
