@@ -4,7 +4,7 @@
     {
         public Context(DbContextOptions<Context> options) : base(options)
         {
-            Database.Migrate();
+            //Database.Migrate();
         }
 
         public DbSet<Promotion> Promotions { get; set; } = null!;

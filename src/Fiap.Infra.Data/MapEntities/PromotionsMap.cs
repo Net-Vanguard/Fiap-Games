@@ -1,4 +1,6 @@
-﻿namespace Fiap.Infra.Data.MapEntities
+﻿using Microsoft.EntityFrameworkCore;
+
+namespace Fiap.Infra.Data.MapEntities
 {
     public class PromotionsMap : IEntityTypeConfiguration<Promotion>
     {
@@ -29,13 +31,13 @@
             builder.Property(p => p.StartDate)
                    .HasConversion(
                        v => v.Value,
-                       v => new UtcDate(v))
+                       v => new UtcDate(DateTime.SpecifyKind(v, DateTimeKind.Utc)))
                    .IsRequired();
 
             builder.Property(p => p.EndDate)
                    .HasConversion(
                        v => v.Value,
-                       v => new UtcDate(v))
+                       v => new UtcDate(DateTime.SpecifyKind(v, DateTimeKind.Utc)))
                    .IsRequired();
 
             builder.HasData(PromotionSeed.Promotions());

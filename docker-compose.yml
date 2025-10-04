@@ -10,40 +10,26 @@ services:
       - "5000:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__DefaultConnection=Server=tcp:srv-usuario.database.windows.net,1433;Initial Catalog=GameDb;User ID=sqladmin;Password=Blink-182@!;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30
+      - ConnectionStrings__FCGConnection=Server=tcp:srv-usuario.database.windows.net,1433;Initial Catalog=GameDb;User ID=sqladmin;Password=Blink-182@!;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30
+      - ConnectionStrings__EventStore=Server=tcp:srv-usuario.database.windows.net,1433;Initial Catalog=EventStore;User ID=sqladmin;Password=Blink-182@!;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30
       - ConnectionStrings__Redis=redis:6379
       - ConnectionStrings__MongoConnection=mongodb://mongodb:27017
-      - AWS_ACCESS_KEY_ID=AKIAQHPMOBCIN56Z5LQT
-      - AWS_SECRET_ACCESS_KEY=zfcd2zBHQUr+B6mpikGYCYAWkivkqu1Vcj0MCqB86EMT6hTdmRbh
+      - AWS_ACCESS_KEY_ID=AKIAWNZU7N7CTFDNP5BK
+      - AWS_SECRET_ACCESS_KEY=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
       - AWS_REGION=sa-east-1
-      - ServiceBus__AccessKey=AKIAQHPMOBCIN56Z5LQT
-      - ServiceBus__SecretKey=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
+      - ServiceBus__AccessKey=AKIAWNZU7N7CTFDNP5BK
+      - ServiceBus__SecretKey=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
       - ServiceBus__Region=sa-east-1
     volumes:
       - ${USERPROFILE}/.aws:/root/.aws:ro
     depends_on:
       - jaeger
-      - db
       - redis
       - mongodb
     networks:
       - fiap-network
 
-  db:
-    image: postgres:latest
-    container_name: fiap-db
-    restart: always
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - fiap-network
-  
   mongodb:
     image: mongo:latest
     container_name: fiap-mongodb
@@ -181,7 +167,6 @@ services:
       - fiap-network
       
 volumes:
-  pgdata:
   sonar_data:
   sonar_extensions:
   sonar_logs:
