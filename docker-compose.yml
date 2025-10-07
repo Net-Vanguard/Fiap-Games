@@ -9,6 +9,7 @@ services:
     ports:
       - "5000:8080"
     environment:
+      - DOTNET_ENVIRONMENT=Development
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=tcp:srv-usuario.database.windows.net,1433;Initial Catalog=GameDb;User ID=sqladmin;Password=Blink-182@!;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30
       - ConnectionStrings__FCGConnection=Server=tcp:srv-usuario.database.windows.net,1433;Initial Catalog=GameDb;User ID=sqladmin;Password=Blink-182@!;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30
@@ -24,12 +25,20 @@ services:
     volumes:
       - ${USERPROFILE}/.aws:/root/.aws:ro
     depends_on:
-      - jaeger
-      - redis
-      - mongodb
+     elasticsearch:
+       condition: service_healthy
+     jaeger:
+       condition: service_started
+     redis:
+       condition: service_started
+     mongodb:
+      condition: service_started
+     users-api:
+       condition: service_started
     networks:
       - fiap-network
 
+  
   mongodb:
     image: mongo:latest
     container_name: fiap-mongodb
@@ -105,7 +114,7 @@ services:
       - fiap-network
  
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
     container_name: fiap-elasticsearch
     environment:
       - "discovery.type=single-node"
@@ -117,9 +126,15 @@ services:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
       - fiap-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.1
+    image: docker.elastic.co/kibana/kibana:9.0.0
     container_name: fiap-kibana
     ports:
       - "5601:5601"
@@ -143,6 +158,15 @@ services:
      - elasticsearch
     networks:
      - fiap-network
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - fiap-network
 
       
   kurrentdb:
