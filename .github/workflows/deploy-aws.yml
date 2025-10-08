@@ -13,6 +13,7 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
 
     steps:
       - name: Checkout do código
