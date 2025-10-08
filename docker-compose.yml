@@ -1,0 +1,182 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: src/FIAP.Api/Dockerfile
+    container_name: fiap-app
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=tcp:srv-usuario.database.windows.net,1433;Initial Catalog=GameDb;User ID=sqladmin;Password=Blink-182@!;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30
+      - ConnectionStrings__FCGConnection=Server=tcp:srv-usuario.database.windows.net,1433;Initial Catalog=GameDb;User ID=sqladmin;Password=Blink-182@!;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30
+      - ConnectionStrings__EventStore=Server=tcp:srv-usuario.database.windows.net,1433;Initial Catalog=EventStore;User ID=sqladmin;Password=Blink-182@!;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30
+      - ConnectionStrings__Redis=redis:6379
+      - ConnectionStrings__MongoConnection=mongodb://mongodb:27017
+      - AWS_ACCESS_KEY_ID=AKIAWNZU7N7CTFDNP5BK
+      - AWS_SECRET_ACCESS_KEY=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
+      - AWS_REGION=sa-east-1
+      - ServiceBus__AccessKey=AKIAWNZU7N7CTFDNP5BK
+      - ServiceBus__SecretKey=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
+      - ServiceBus__Region=sa-east-1
+    volumes:
+      - ${USERPROFILE}/.aws:/root/.aws:ro
+    depends_on:
+      - jaeger
+      - redis
+      - mongodb
+    networks:
+      - fiap-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: fiap-mongodb
+    restart: always
+    environment:
+      - MONGO_INITDB_DATABASE=${MONGO_DB}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - fiap-network
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    command: redis-server
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - fiap-network
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - MEMORY_MAX_TRACES=10000
+    networks:
+      - fiap-network
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - fiap-network
+
+  grafana:
+    image: grafana/grafana:9.5.2
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - fiap-network
+
+  sonarqube:
+    image: sonarqube:community
+    container_name: fiap-sonarqube
+    ports:
+      - "9001:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonar_data:/opt/sonarqube/data
+      - sonar_extensions:/opt/sonarqube/extensions
+      - sonar_logs:/opt/sonarqube/logs
+    networks:
+      - fiap-network
+ 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: fiap-elasticsearch
+    environment:
+      - "discovery.type=single-node"
+      - "xpack.security.enabled=false"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - fiap-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.1
+    container_name: fiap-kibana
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    environment:
+      - "ELASTICSEARCH_HOSTS=http://elasticsearch:9200"
+    networks:
+      - fiap-network
+ 
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.1
+    container_name: fiap-filebeat
+    user: root   
+    command: filebeat -e --strict.perms=false  
+    volumes:
+     - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+     - /var/lib/docker/containers:/var/lib/docker/containers:ro
+     - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+     - elasticsearch
+    networks:
+     - fiap-network
+
+      
+  kurrentdb:
+    image: docker.kurrent.io/kurrent-latest/kurrentdb:latest
+    environment:
+      - KURRENTDB_CLUSTER_SIZE=1
+      - KURRENTDB_RUN_PROJECTIONS=All
+      - KURRENTDB_START_STANDARD_PROJECTIONS=true
+      - KURRENTDB_NODE_PORT=2113
+      - KURRENTDB_INSECURE=true
+      - KURRENTDB_ENABLE_ATOM_PUB_OVER_HTTP=true
+    ports:
+      - "2113:2113"
+    volumes:
+      - type: volume
+        source: kurrentdb-volume-data
+        target: /var/lib/kurrentdb
+      - type: volume
+        source: kurrentdb-volume-logs
+        target: /var/log/kurrentdb
+    networks:
+      - fiap-network
+      
+volumes:
+  sonar_data:
+  sonar_extensions:
+  sonar_logs:
+  grafana_data:
+  redis-data:
+  elasticsearch_data:
+  mongodb_data:
+  kurrentdb-volume-data:
+  kurrentdb-volume-logs:
+
+networks:
+  fiap-network:
+    driver: bridge

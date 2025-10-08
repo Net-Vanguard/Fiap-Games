@@ -1,0 +1,11 @@
+﻿global using Fiap.Domain.PromotionAggregate;
+global using Fiap.Domain.PromotionAggregate.Events;
+global using Fiap.Domain.GameAggregate;
+global using Fiap.Domain.GameAggregate.Events;
+global using Rebus.Handlers;
+global using Fiap.Domain.Common.Events;
+global using Fiap.Infra.MongoDb.Repositories;
+global using Microsoft.Extensions.Logging;
+global using Fiap.Infra.CrossCutting.Common.Elastic.Services;
+global using Fiap.Infra.CrossCutting.Common.Elastic.Models;
+global using Fiap.Domain.Common.ValueObjects;global using Fiap.Domain.Common.ValueObjects;

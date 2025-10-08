@@ -1,0 +1,35 @@
+﻿global using Fiap.Application.Common;
+global using Fiap.Domain.SeedWork;
+global using Microsoft.AspNetCore.Mvc;
+global using Swashbuckle.AspNetCore.Annotations;
+global using System.Net;
+
+global using Swashbuckle.AspNetCore.Filters;
+global using Fiap.Application.Games.Models.Request;
+global using Fiap.Application.Games.Models.Response;
+global using Fiap.Application.Games.Services;
+global using Microsoft.AspNetCore.Authorization;
+global using Fiap.Application.Promotions.Models.Request;
+global using Fiap.Application.Promotions.Models.Response;
+global using Fiap.Application.Promotions.Services;
+global using Fiap.Infra.CrossCutting.Common.Elastic.Models;
+global using Fiap.Infra.CrossCutting.Common.Elastic.Services;
+
+global using Microsoft.AspNetCore.Mvc.Versioning;
+global using System.Diagnostics.CodeAnalysis;
+global using Fiap.Api.Middlewares;
+global using Microsoft.OpenApi.Models;
+global using Swashbuckle.AspNetCore.SwaggerGen;
+global using Microsoft.OpenApi.Any;
+global using System.Reflection;
+global using System.Text.Json;
+global using Fiap.Domain.SeedWork.Exceptions;
+global using Serilog;
+global using Fiap.Application.Validators;
+global using Microsoft.AspNetCore.Mvc.Filters;
+global using System.Security.Claims;
+global using static Fiap.Domain.SeedWork.NotificationModel;
+global using Fiap.Api.Extensions;
+global using Fiap.Infra.CrossCutting.IoC;
+global using HealthChecks.ApplicationStatus.DependencyInjection;
+global using Prometheus;global using Prometheus;

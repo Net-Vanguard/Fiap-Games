@@ -1,0 +1,13 @@
+﻿global using Abp.Domain.Values;
+global using Fiap.Domain.SeedWork.Exceptions;
+global using Abp.Domain.Entities;
+global using Fiap.Domain.PromotionAggregate;
+global using IAggregateRoot = Fiap.Domain.SeedWork.IAggregateRoot;
+global using Fiap.Domain.Common.ValueObjects;
+global using Fiap.Domain.SeedWork;
+global using Fiap.Domain.GameAggregate;
+global using System.Diagnostics.CodeAnalysis;
+global using System.Runtime.Serialization;
+global using System.Linq.Expressions;
+global using static Fiap.Domain.SeedWork.NotificationModel;
+global using Fiap.Domain.Common.Events;

@@ -1,0 +1,105 @@
+name: Pré-validação de Release/Hotfix
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Fetch last release version
+        id: last_release
+        run: |
+          git fetch --tags
+          LAST_RELEASE=$(git tag --list 'v*.0.0' --sort=-creatordate | head -n 1)
+          echo "Última release: $LAST_RELEASE"
+          echo "last_release=$LAST_RELEASE" >> $GITHUB_OUTPUT
+
+      - name: Validate branch name and extract version
+        id: validate
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          echo "Branch: $BRANCH"
+
+          if [[ "$BRANCH" =~ ^release/([0-9]+)\.([0-9]+)\.0$ ]]; then
+            VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.0"
+            TYPE="release"
+            MAJOR="${BASH_REMATCH[1]}"
+            MINOR="${BASH_REMATCH[2]}"
+          elif [[ "$BRANCH" =~ ^hotfix/([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+            TYPE="hotfix"
+            MAJOR="${BASH_REMATCH[1]}"
+            MINOR="${BASH_REMATCH[2]}"
+            PATCH="${BASH_REMATCH[3]}"
+          else
+            echo "❌ Nome de branch inválido. Use 'release/X.Y.0' ou 'hotfix/X.Y.Z'"
+            exit 1
+          fi
+
+          echo "version=v$VERSION" >> $GITHUB_OUTPUT
+          echo "type=$TYPE" >> $GITHUB_OUTPUT
+          echo "major=$MAJOR" >> $GITHUB_OUTPUT
+          echo "minor=$MINOR" >> $GITHUB_OUTPUT
+          if [[ ! -z "$PATCH" ]]; then
+            echo "patch=$PATCH" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate sequential release (X.Y.0)
+        if: steps.validate.outputs.type == 'release'
+        run: |
+          git fetch --tags
+
+          CURRENT_MAJOR="${{ steps.validate.outputs.major }}"
+          CURRENT_MINOR="${{ steps.validate.outputs.minor }}"
+
+          echo "Procurando últimas tags release: v$CURRENT_MAJOR.*.0"
+
+          LAST_MINOR=$(git tag --list "v$CURRENT_MAJOR.*.0" | sed -E "s/v$CURRENT_MAJOR\.([0-9]+)\.0/\1/" | sort -n | tail -n 1)
+          LAST_MINOR=${LAST_MINOR:- -1}
+
+          EXPECTED=$((LAST_MINOR + 1))
+
+          echo "Último minor encontrado: $LAST_MINOR"
+          echo "Esperado: $EXPECTED"
+          echo "Atual: $CURRENT_MINOR"
+
+          if [ "$CURRENT_MINOR" -ne "$EXPECTED" ]; then
+            echo "❌ Release inválida. O próximo minor permitido é $EXPECTED (ex: release/$CURRENT_MAJOR.$EXPECTED.0)"
+            exit 1
+          fi
+
+      - name: Validate hotfix based on the last patch
+        if: steps.validate.outputs.type == 'hotfix'
+        run: |
+          git fetch --tags
+
+          CURRENT_MAJOR="${{ steps.validate.outputs.major }}"
+          CURRENT_MINOR="${{ steps.validate.outputs.minor }}"
+          CURRENT_PATCH=$(echo "${{ steps.validate.outputs.version }}" | cut -d. -f3)
+
+          MATCH_PREFIX="v$CURRENT_MAJOR.$CURRENT_MINOR."
+          echo "Procurando tags com prefixo: $MATCH_PREFIX"
+
+          LAST_PATCH=$(git tag --list "${MATCH_PREFIX}*" | sed "s/${MATCH_PREFIX}//" | sort -n | tail -n 1)
+          LAST_PATCH=${LAST_PATCH:-0}
+
+          EXPECTED=$((LAST_PATCH + 1))
+
+          echo "Último patch: $LAST_PATCH"
+          echo "Esperado: $EXPECTED"
+          echo "Atual: $CURRENT_PATCH"
+
+          if [ "$CURRENT_PATCH" -ne "$EXPECTED" ]; then
+            echo "❌ Hotfix inválido. O próximo patch permitido é Z = $EXPECTED (ex: hotfix/$CURRENT_MAJOR.$CURRENT_MINOR.$EXPECTED)"
+            exit 1
+          fi
