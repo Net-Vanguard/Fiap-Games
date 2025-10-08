@@ -12,16 +12,30 @@ namespace Fiap.Infra.CrossCutting.Common.Elastic.Services
             var gamesList = games.ToList();
 
             var indexExistsResp = await client.Indices.ExistsAsync(IndexName);
-            
+
             if (!indexExistsResp.Exists)
             {
                 var createIndexResp = await client.Indices.CreateAsync(IndexName, c => c
-                    .Settings(s => s
-                        .NumberOfShards(1)
-                        .NumberOfReplicas(0)
-                        .RefreshInterval(TimeSpan.FromSeconds(1))
-                    )
-                );
+                     .Settings(s => s
+                         .NumberOfShards(1)
+                         .NumberOfReplicas(0)
+                         .RefreshInterval(TimeSpan.FromSeconds(1))
+                     )
+                     .Mappings(m => m
+                         .Properties(p => p
+                             .Text("name", t => t.Analyzer("standard"))
+                             .Keyword("genre")
+                             .IntegerNumber("id")
+                             .DoubleNumber("price")
+                             .DoubleNumber("finalPrice")
+                             .IntegerNumber("promotionId")
+                             .Boolean("hasActivePromotion")
+                             .IntegerNumber("popularityScore")
+                             .Keyword("tags")
+                             .Date("indexedAt")
+                         )
+                     )
+                 );
 
                 if (!createIndexResp.IsValidResponse)
                     return false;
@@ -31,22 +45,24 @@ namespace Fiap.Infra.CrossCutting.Common.Elastic.Services
 
             var successCount = 0;
             var failedCount = 0;
-            
+
             for (int i = 0; i < gamesList.Count; i++)
             {
                 var game = gamesList[i];
-               
+
                 var singleResp = await client.IndexAsync(game, idx => idx
                     .Index(IndexName)
                     .Id(game.Id.ToString())
-                    .Refresh(Refresh.True) 
+                    .Refresh(Refresh.True)
                 );
-                
+
                 if (singleResp.IsValidResponse)
                     successCount++;
                 else
                     failedCount++;
             }
+
+            logger.LogInformation("Indexed {Success} games successfully, {Failed} failed", successCount, failedCount);
 
             if (successCount > 0)
             {
@@ -60,7 +76,7 @@ namespace Fiap.Infra.CrossCutting.Common.Elastic.Services
         private async Task<bool> VerifyIndexingSimple(int expectedCount)
         {
             await Task.Delay(2000);
-            
+
             var countResp = await client.CountAsync<GameDocument>(c => c
                 .Indices(IndexName)
             );
@@ -68,31 +84,32 @@ namespace Fiap.Infra.CrossCutting.Common.Elastic.Services
             if (countResp.IsValidResponse)
             {
                 var actualCount = (int)countResp.Count;
-                
+
                 if (actualCount >= expectedCount)
                 {
                     var sampleResp = await client.SearchAsync<GameDocument>(s => s
-                        .Index(IndexName)
+                        .Indices(IndexName)
                         .Query(q => q.MatchAll())
                         .Size(3)
                     );
-                   
+
+                    logger.LogInformation("Verified indexing: expected {Expected}, actual {Actual}", expectedCount, actualCount);
                     return true;
                 }
                 else
                 {
                     logger.LogWarning("Expected {ExpectedCount} documents but found {ActualCount}", expectedCount, actualCount);
-                    return actualCount > 0; 
+                    return actualCount > 0;
                 }
             }
-            
+
             return false;
         }
 
         public async Task<IReadOnlyList<GameDocument>> GetAllGamesAsync()
         {
             var resp = await client.SearchAsync<GameDocument>(s => s
-                .Index(IndexName)
+                .Indices(IndexName)
                 .Query(q => q.MatchAll())
                 .Sort(so => so
                     .Field(f => f.Field("popularityScore").Order(SortOrder.Desc))
@@ -110,26 +127,26 @@ namespace Fiap.Infra.CrossCutting.Common.Elastic.Services
         public async Task<GameDocument?> GetGameByIdAsync(int id)
         {
             var getResp = await client.GetAsync<GameDocument>(id.ToString(), idx => idx.Index(IndexName));
-            
+
             if (getResp.IsValidResponse && getResp.Found)
                 return getResp.Source;
 
             var searchResp = await client.SearchAsync<GameDocument>(s => s
-                .Index(IndexName)
+                .Indices(IndexName)
                 .Query(q => q.Term(t => t.Field("id").Value(id)))
                 .Size(1)
             );
 
             if (searchResp.IsValidResponse)
                 return searchResp.Documents.FirstOrDefault();
-            
+
             return null;
         }
 
         public async Task<IReadOnlyList<GameDocument>> GetRecommendationsByGenreAsync(string genre, int userId, int limit = 10)
         {
             var resp = await client.SearchAsync<GameDocument>(s => s
-                .Index(IndexName)
+                .Indices(IndexName)
                 .Query(q => q
                     .Bool(b => b
                         .Must(m => m.Term(t => t.Field("genre").Value(genre)))
@@ -155,7 +172,7 @@ namespace Fiap.Infra.CrossCutting.Common.Elastic.Services
         public async Task<IReadOnlyList<GameDocument>> GetMostPopularGamesAsync(int limit = 10)
         {
             var resp = await client.SearchAsync<GameDocument>(s => s
-                .Index(IndexName)
+                .Indices(IndexName)
                 .Query(q => q.MatchAll())
                 .Sort(so => so
                     .Field(f => f.Field("popularityScore").Order(SortOrder.Desc))
@@ -184,7 +201,7 @@ namespace Fiap.Infra.CrossCutting.Common.Elastic.Services
         public async Task<bool> BulkUpdatePopularityAsync(Dictionary<int, int> gamePopularityScores)
         {
             var allSuccess = true;
-            
+
             foreach (var (gameId, score) in gamePopularityScores)
             {
                 var success = await UpdateGamePopularityAsync(gameId, score);
@@ -198,7 +215,7 @@ namespace Fiap.Infra.CrossCutting.Common.Elastic.Services
         public async Task<IReadOnlyList<GameDocument>> SearchGamesAsync(string? searchTerm = null, string? genre = null, int limit = 50)
         {
             var resp = await client.SearchAsync<GameDocument>(s => s
-                .Index(IndexName)
+                .Indices(IndexName)
                 .Query(q => q.MatchAll())
                 .Sort(so => so
                     .Field(f => f.Field("hasActivePromotion").Order(SortOrder.Desc))
@@ -215,7 +232,7 @@ namespace Fiap.Infra.CrossCutting.Common.Elastic.Services
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                results = results.Where(g => 
+                results = results.Where(g =>
                     g.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                     g.Genre.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
                 ).ToList();
@@ -223,7 +240,7 @@ namespace Fiap.Infra.CrossCutting.Common.Elastic.Services
 
             if (!string.IsNullOrWhiteSpace(genre))
             {
-                results = results.Where(g => 
+                results = results.Where(g =>
                     g.Genre.Equals(genre, StringComparison.OrdinalIgnoreCase)
                 ).ToList();
             }
@@ -246,122 +263,316 @@ namespace Fiap.Infra.CrossCutting.Common.Elastic.Services
 
         public async Task<IReadOnlyList<GameDocument>> SearchWithDSLAsync(Dictionary<string, string> queryParams, int limit = 50)
         {
+            logger.LogInformation("SearchWithDSLAsync called with queryParams: {Params}", queryParams);
+
             if (!queryParams.Any())
                 return await GetAllGamesAsync();
 
-            var allGames = await GetAllGamesAsync();
-            
-            if (!allGames.Any())
-                return [];
+            var searchDescriptor = new SearchRequest<GameDocument>(IndexName)
+            {
+                Size = limit,
+                Query = BuildSearchQuery(queryParams)
+            };
 
-            var filteredGames = allGames.AsEnumerable();
+            var sortField = queryParams.GetValueOrDefault("sort") ?? queryParams.GetValueOrDefault("orderby", "name");
+            var sortDirection = queryParams.GetValueOrDefault("order", "asc").ToLowerInvariant();
+            var order = sortDirection == "desc" ? SortOrder.Desc : SortOrder.Asc;
+
+            searchDescriptor.Sort = BuildSort(sortField, order);
+
+            var resp = await client.SearchAsync<GameDocument>(searchDescriptor);
+
+            logger.LogInformation("Search response valid: {Valid}, documents count: {Count}", resp.IsValidResponse, resp.Documents.Count);
+
+            if (!resp.IsValidResponse)
+            {
+                logger.LogError("Search failed: {Error}", resp.ElasticsearchServerError?.Error?.Reason ?? resp.DebugInformation);
+                return [];
+            }
+
+            return [.. resp.Documents];
+        }
+
+        private List<SortOptions> BuildSort(string sortField, SortOrder order)
+        {
+            var sortOptions = new List<SortOptions>();
+
+            switch (sortField.ToLowerInvariant())
+            {
+                case "_score":
+                case "relevance":
+                    sortOptions.Add(new FieldSort { Field = "_score", Order = SortOrder.Desc });
+                    break;
+                case "name":
+                    sortOptions.Add(new FieldSort { Field = "name.keyword", Order = order });
+                    break;
+                case "price":
+                    sortOptions.Add(new FieldSort { Field = "price", Order = order });
+                    break;
+                case "finalprice":
+                    sortOptions.Add(new FieldSort { Field = "finalPrice", Order = order });
+                    break;
+                case "genre":
+                    sortOptions.Add(new FieldSort { Field = "genre", Order = order });
+                    break;
+                case "popularity":
+                    sortOptions.Add(new FieldSort { Field = "popularityScore", Order = order });
+                    break;
+                case "id":
+                    sortOptions.Add(new FieldSort { Field = "id", Order = order });
+                    break;
+                case "promotion":
+                    sortOptions.Add(new FieldSort { Field = "hasActivePromotion", Order = order });
+                    break;
+                default:
+
+                    sortOptions.Add(new FieldSort { Field = "hasActivePromotion", Order = SortOrder.Desc });
+                    sortOptions.Add(new FieldSort { Field = "popularityScore", Order = SortOrder.Desc });
+                    sortOptions.Add(new FieldSort { Field = "name.keyword", Order = SortOrder.Asc });
+                    break;
+            }
+
+            return sortOptions;
+        }
+
+        private Query BuildSearchQuery(Dictionary<string, string> queryParams)
+        {
+            var queries = new List<Query>();
 
             foreach (var (key, value) in queryParams)
             {
-                if (string.IsNullOrWhiteSpace(value)) 
+                if (string.IsNullOrWhiteSpace(value))
                     continue;
 
                 var lowerKey = key.ToLowerInvariant();
-                var lowerValue = value.ToLowerInvariant();
 
-                filteredGames = lowerKey switch
+                switch (lowerKey)
                 {
-                    "genre" => filteredGames.Where(g => g.Genre.Equals(value, StringComparison.OrdinalIgnoreCase)),
-                    "id" => int.TryParse(value, out var id) ? filteredGames.Where(g => g.Id == id) : filteredGames,
-                    "promotionid" => int.TryParse(value, out var promId) ? filteredGames.Where(g => g.PromotionId == promId) : filteredGames,
-                    
-                    "name" => filteredGames.Where(g => g.Name.Contains(value, StringComparison.OrdinalIgnoreCase)),
-                    "title" => filteredGames.Where(g => g.Name.Contains(value, StringComparison.OrdinalIgnoreCase)),
-                    "game" => filteredGames.Where(g => g.Name.Contains(value, StringComparison.OrdinalIgnoreCase)),
+                    case "q":
+                    case "search":
+                       
+                        var multiMatchQuery = new MultiMatchQuery
+                        {
+                            Query = value.Trim(),
+                            Fields = new[] { "name", "genre", "tags" },
+                            Operator = Operator.Or,
+                            Fuzziness = new Fuzziness("AUTO")
+                        };
+                        queries.Add(multiMatchQuery);
+                        break;
 
-                    "price" => FilterByPrice(filteredGames, value),
-                    "pricemin" => decimal.TryParse(value, out var minPrice) ? filteredGames.Where(g => g.Price >= minPrice) : filteredGames,
-                    "pricemax" => decimal.TryParse(value, out var maxPrice) ? filteredGames.Where(g => g.Price <= maxPrice) : filteredGames,
-                    "finalprice" => decimal.TryParse(value, out var finalPrice) ? filteredGames.Where(g => g.FinalPrice <= finalPrice) : filteredGames,
-                    
-                    "promotion" => bool.TryParse(value, out var hasPromo) ? filteredGames.Where(g => g.HasActivePromotion == hasPromo) : filteredGames,
-                    "activepromotion" => bool.TryParse(value, out var activePromo) ? filteredGames.Where(g => g.HasActivePromotion == activePromo) : filteredGames,
-                    "haspromotion" => bool.TryParse(value, out var hasActivePromo) ? filteredGames.Where(g => g.HasActivePromotion == hasActivePromo) : filteredGames,
+                    case "name":
+                    case "title":
+                    case "game":
+                        var matchQuery = new MatchQuery
+                        {
+                            Field = "name",
+                            Query = value.Trim(),
+                            Fuzziness = new Fuzziness("AUTO")
+                        };
+                        queries.Add(matchQuery);
+                        break;
 
-                    "popularity" => int.TryParse(value, out var popularity) ? filteredGames.Where(g => g.PopularityScore >= popularity) : filteredGames,
-                    "popular" => filteredGames.OrderByDescending(g => g.PopularityScore),
+                    case "genre":
+                        var termQuery = new TermQuery
+                        {
+                            Field = "genre",
+                            Value = value.Trim()
+                        };
+                        queries.Add(termQuery);
+                        break;
 
-                    "tag" => filteredGames.Where(g => g.Tags?.Any(t => t.Contains(lowerValue, StringComparison.OrdinalIgnoreCase)) == true),
-                    "tags" => filteredGames.Where(g => g.Tags?.Any(t => t.Contains(lowerValue, StringComparison.OrdinalIgnoreCase)) == true),
+                    case "pricemin":
+                        if (decimal.TryParse(value, out var minPrice))
+                        {
+                            var rangeMin = new NumberRangeQuery
+                            {
+                                Field = "price",
+                                Gte = (double)minPrice
+                            };
+                            queries.Add(rangeMin);
+                        }
+                        break;
 
-                    "search" => filteredGames.Where(g => 
-                        g.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
-                        g.Genre.Contains(value, StringComparison.OrdinalIgnoreCase) ||
-                        g.Tags?.Any(t => t.Contains(lowerValue, StringComparison.OrdinalIgnoreCase)) == true
-                    ),
-                    "q" => filteredGames.Where(g => 
-                        g.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
-                        g.Genre.Contains(value, StringComparison.OrdinalIgnoreCase) ||
-                        g.Tags?.Any(t => t.Contains(lowerValue, StringComparison.OrdinalIgnoreCase)) == true
-                    ),
+                    case "pricemax":
+                        if (decimal.TryParse(value, out var maxPrice))
+                        {
+                            var rangeMax = new NumberRangeQuery
+                            {
+                                Field = "price",
+                                Lte = (double)maxPrice
+                            };
+                            queries.Add(rangeMax);
+                        }
+                        break;
 
-                    _ => filteredGames.Where(g => g.Name.Contains(value, StringComparison.OrdinalIgnoreCase))
+                    case "promotion":
+                    case "activepromotion":
+                    case "haspromotion":
+                        if (bool.TryParse(value, out var hasPromo))
+                        {
+                            var termPromo = new TermQuery
+                            {
+                                Field = "hasActivePromotion",
+                                Value = hasPromo
+                            };
+                            queries.Add(termPromo);
+                        }
+                        break;
+
+                    case "tag":
+                    case "tags":
+                        var termTag = new TermQuery
+                        {
+                            Field = "tags",
+                            Value = value.Trim()
+                        };
+                        queries.Add(termTag);
+                        break;
+                }
+            }
+
+         
+            if (queries.Count == 1)
+                return queries[0];
+
+            if (queries.Count > 1)
+            {
+                return new BoolQuery
+                {
+                    Must = queries
                 };
             }
 
-            if (queryParams.ContainsKey("sort") || queryParams.ContainsKey("orderby"))
-            {
-                var sortField = queryParams.GetValueOrDefault("sort") ?? queryParams.GetValueOrDefault("orderby", "name");
-                var sortDirection = queryParams.GetValueOrDefault("order", "asc").ToLowerInvariant();
-
-                filteredGames = ApplySorting(filteredGames, sortField, sortDirection);
-            }
-            else
-            {
-                filteredGames = filteredGames
-                    .OrderByDescending(g => g.HasActivePromotion)
-                    .ThenByDescending(g => g.PopularityScore)
-                    .ThenBy(g => g.Name);
-            }
-
-            var results = filteredGames.Take(limit).ToList();
-            return results.AsReadOnly();
+            return new MatchAllQuery();
         }
 
-        private IEnumerable<GameDocument> FilterByPrice(IEnumerable<GameDocument> games, string priceValue)
-        {
-            if (priceValue.StartsWith(">="))
-                return decimal.TryParse(priceValue[2..], out var price) ? games.Where(g => g.Price >= price) : games;
-            
-            if (priceValue.StartsWith("<="))
-                return decimal.TryParse(priceValue[2..], out var price) ? games.Where(g => g.Price <= price) : games;
-            
-            if (priceValue.StartsWith(">"))
-                return decimal.TryParse(priceValue[1..], out var price) ? games.Where(g => g.Price > price) : games;
-            
-            if (priceValue.StartsWith("<"))
-                return decimal.TryParse(priceValue[1..], out var price) ? games.Where(g => g.Price < price) : games;
-            
-            if (priceValue.Contains("-"))
-            {
-                var parts = priceValue.Split('-');
-                if (parts.Length == 2 && decimal.TryParse(parts[0], out var min) && decimal.TryParse(parts[1], out var max))
-                    return games.Where(g => g.Price >= min && g.Price <= max);
-            }
 
-            return decimal.TryParse(priceValue, out var exactPrice) ? games.Where(g => g.Price == exactPrice) : games;
+        public async Task<IReadOnlyList<GameDocument>> MatchQueryAsync(string field, string query, int limit = 50)
+        {
+            var resp = await client.SearchAsync<GameDocument>(s => s
+                .Indices(IndexName)
+                .Query(q => q.Match(m => m
+                    .Field(field)
+                    .Query(query)
+                ))
+                .Size(limit)
+            );
+
+            if (!resp.IsValidResponse)
+                return [];
+
+            return [.. resp.Documents];
         }
 
-        private IEnumerable<GameDocument> ApplySorting(IEnumerable<GameDocument> games, string sortField, string direction)
+        public async Task<IReadOnlyList<GameDocument>> FuzzyQueryAsync(string field, string query, int limit = 50)
         {
-            var isDescending = direction == "desc" || direction == "descending";
+            var resp = await client.SearchAsync<GameDocument>(s => s
+                .Indices(IndexName)
+                .Query(q => q.Fuzzy(f => f
+                    .Field(field)
+                    .Value(query)
+                    .Fuzziness(new Fuzziness("AUTO"))
+                ))
+                .Size(limit)
+            );
 
-            return sortField.ToLowerInvariant() switch
-            {
-                "name" => isDescending ? games.OrderByDescending(g => g.Name) : games.OrderBy(g => g.Name),
-                "price" => isDescending ? games.OrderByDescending(g => g.Price) : games.OrderBy(g => g.Price),
-                "finalprice" => isDescending ? games.OrderByDescending(g => g.FinalPrice) : games.OrderBy(g => g.FinalPrice),
-                "genre" => isDescending ? games.OrderByDescending(g => g.Genre) : games.OrderBy(g => g.Genre),
-                "popularity" => isDescending ? games.OrderByDescending(g => g.PopularityScore) : games.OrderBy(g => g.PopularityScore),
-                "id" => isDescending ? games.OrderByDescending(g => g.Id) : games.OrderBy(g => g.Id),
-                "promotion" => isDescending ? games.OrderByDescending(g => g.HasActivePromotion) : games.OrderBy(g => g.HasActivePromotion),
-                _ => isDescending ? games.OrderByDescending(g => g.Name) : games.OrderBy(g => g.Name)
-            };
+            if (!resp.IsValidResponse)
+                return [];
+
+            return [.. resp.Documents];
+        }
+
+        public async Task<IReadOnlyList<GameDocument>> WildcardQueryAsync(string field, string query, int limit = 50)
+        {
+            var resp = await client.SearchAsync<GameDocument>(s => s
+                .Indices(IndexName)
+                .Query(q => q.Wildcard(w => w
+                    .Field(field)
+                    .Value(query)
+                ))
+                .Size(limit)
+            );
+
+            if (!resp.IsValidResponse)
+                return [];
+
+            return [.. resp.Documents];
+        }
+
+        public async Task<IReadOnlyList<GameDocument>> MultiMatchQueryAsync(string[] fields, string query, int limit = 50)
+        {
+            var resp = await client.SearchAsync<GameDocument>(s => s
+                .Indices(IndexName)
+                .Query(q => q.MultiMatch(mm => mm
+                    .Fields(fields)
+                    .Query(query)
+                    .Operator(Operator.Or)
+                ))
+                .Size(limit)
+            );
+
+            if (!resp.IsValidResponse)
+                return [];
+
+            return [.. resp.Documents];
+        }
+
+        public async Task<IReadOnlyList<GameDocument>> BoolQueryAsync(Query mustQuery, Query shouldQuery = null, Query mustNotQuery = null, int limit = 50)
+        {
+            var resp = await client.SearchAsync<GameDocument>(s => s
+                .Indices(IndexName)
+                .Query(q => q
+                    .Bool(b =>
+                    {
+                        if (mustQuery != null)
+                            b.Must(mustQuery);
+                        if (shouldQuery != null)
+                            b.Should(shouldQuery);
+                        if (mustNotQuery != null)
+                            b.MustNot(mustNotQuery);
+                    })
+                )
+                .Size(limit)
+            );
+
+            if (!resp.IsValidResponse)
+                return [];
+
+            return [.. resp.Documents];
+        }
+
+        public async Task<IReadOnlyList<GameDocument>> GoogleStyleSearchAsync(string query, int limit = 50)
+        {
+            var resp = await client.SearchAsync<GameDocument>(s => s
+                .Indices(IndexName)
+                .Query(q => q
+                    .Bool(b => b
+                        .Should(
+                            sh => sh.MultiMatch(mm => mm
+                                .Fields(new[] { "name", "genre", "tags" })
+                                .Query(query)
+                                .Operator(Operator.Or)
+                            ),
+                            sh => sh.Fuzzy(f => f
+                                .Field("name")
+                                .Value(query)
+                                .Fuzziness(new Fuzziness("AUTO"))
+                            ),
+                            sh => sh.Wildcard(w => w
+                                .Field("name")
+                                .Value($"*{query}*")
+                            )
+                        )
+                    )
+                )
+                .Size(limit)
+            );
+
+            if (!resp.IsValidResponse)
+                return [];
+
+            return [.. resp.Documents];
         }
     }
 }
