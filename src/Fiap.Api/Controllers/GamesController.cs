@@ -177,6 +177,8 @@
             var result = await gamesService.GetUserRecommendationsAsync(userId);
             return Response<IEnumerable<GameResponse>>(result?.Count(), result);
         }
+
+        
     }
 }
 
