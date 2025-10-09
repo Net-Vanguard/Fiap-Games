@@ -7,7 +7,7 @@ on:
       - completed
 
 env:
-  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/fcg
+  IMAGE_NAME: docker.io/${{ secrets.DOCKER_USERNAME }}/fcg
 
 jobs:
   deploy:
